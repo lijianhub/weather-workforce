@@ -1,0 +1,7 @@
+policy,avoidable_cost,idle_cost,overhead_cost,delay_cost,labour_cost,bins_picked,washout_paid_hours,worker_hours_offered,hours_per_worker_per_week,saving_vs_no_weather,share_of_possible_saving
+Full crew (status quo),311665.2,142239.19,80400.17,89025.84,1079197.53,24833.91,640.0,38853.25,32.69,-187711.43,-9.57
+Crew sized to ripe fruit (no weather),123953.77,11130.68,9723.06,103100.03,947629.34,24833.91,352.0,47731.64,40.16,0.0,0.0
+Forecast rule of thumb,168560.45,2067.85,5551.6,160941.0,939012.53,24833.91,80.0,47020.42,39.56,-44606.67,-2.27
+AI planner: history-only model,124173.83,10975.05,9315.79,103883.0,947303.48,24832.23,348.0,47712.78,40.14,-220.06,-0.01
+AI planner: MOS model,124360.27,7825.75,8894.65,107639.87,944117.12,24832.23,244.0,47270.57,39.77,-406.5,-0.02
+"Perfect forecast, same planner (upper bound)",104341.27,208.68,5297.32,98835.27,937434.37,24833.91,0.0,47319.81,39.81,19612.51,1.0

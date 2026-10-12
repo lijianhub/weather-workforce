@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crew Planner</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f5f2; --surface: #fcfcfb; --border: #e2e0da;
+  --text: #0b0b0b; --text-2: #52514e; --muted: #7a7973;
+  --accent: #2a78d6; --accent-soft: #e6f0fc; --warn: #eb6834;
+  --grid: #ecebe6;
+  --b0: #cde2fb; --b1: #86b6ef; --b2: #2a78d6; --b3: #104281;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211; --surface: #1a1a19; --border: #33332f;
+    --text: #ffffff; --text-2: #c3c2b7; --muted: #8f8e86;
+    --accent: #3987e5; --accent-soft: #1d2f47; --warn: #d95926; --grid: #2a2a27;
+    --b0: #184f95; --b1: #256abf; --b2: #5598e7; --b3: #b7d3f6;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211; --surface: #1a1a19; --border: #33332f;
+  --text: #ffffff; --text-2: #c3c2b7; --muted: #8f8e86;
+  --accent: #3987e5; --accent-soft: #1d2f47; --warn: #d95926; --grid: #2a2a27;
+  --b0: #184f95; --b1: #256abf; --b2: #5598e7; --b3: #b7d3f6;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.sub { color: var(--text-2); margin: 0 0 20px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px; margin-bottom: 16px; }
+.card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-2); margin: 0 0 12px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: end; }
+.controls label { display: flex; flex-direction: column; font-size: 12px; color: var(--text-2); gap: 4px; }
+.controls input, .controls select { font: inherit; padding: 6px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text); width: 130px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; border: 0; padding: 7px 14px; background: transparent; color: var(--text-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.tile .k { font-size: 12px; color: var(--text-2); }
+.tile .v { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.headline { font-size: 19px; font-weight: 650; margin: 0 0 8px; }
+.crew { font-size: 40px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+ul.reasons { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); }
+.bands { display: flex; height: 26px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--surface); }
+.bands div { min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-2); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 14px; }
+th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: 12px; color: var(--text-2); font-weight: 600; }
+tr.ai td { background: var(--accent-soft); font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+.actual { border-left: 3px solid var(--warn); padding-left: 12px; }
+.note { font-size: 13px; color: var(--muted); }
+.err { color: var(--warn); font-weight: 600; }
+svg text { fill: var(--text-2); font-size: 11px; }
+#tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px; font-size: 12px; display: none; box-shadow: 0 2px 8px rgb(0 0 0 / .12); }
+.chart-box { position: relative; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Weather-aware crew planner</h1>
+  <p class="sub">Apple orchard, Hastings (Hawke's Bay). Tomorrow's chance of wet working hours → how many pickers to roster.
+    Decision support for a manager, not an autopilot.</p>
+
+  <section class="card">
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="m-replay" aria-pressed="true">Replay a past day</button>
+        <button id="m-live" aria-pressed="false">Live: tomorrow</button>
+      </div>
+      <label id="date-wrap">Harvest day (2025–26)<select id="date"></select></label>
+      <label>Ripe bins ready<input id="ready" type="number" min="0" placeholder="auto"></label>
+      <label>Pickers on roster<input id="pool" type="number" min="1" value="40"></label>
+      <label>Guaranteed hours<input id="minpaid" type="number" min="0" max="12" step="0.5" value="4"></label>
+      <label>Delay cost $/bin/day<input id="delay" type="number" min="0" step="1" value="15"></label>
+    </div>
+    <p id="status" class="note"></p>
+  </section>
+
+  <section class="card">
+    <h2>Weather risk for working hours (07:00–17:00)</h2>
+    <div class="tiles">
+      <div class="tile"><div class="k">P(rain ≥ 1 mm)</div><div class="v" id="t-rain">–</div></div>
+      <div class="tile"><div class="k">P(washout: ≥ 4 wet hours)</div><div class="v" id="t-wash">–</div></div>
+      <div class="tile"><div class="k">Forecast rain, work hours</div><div class="v" id="t-mm">–</div></div>
+      <div class="tile"><div class="k">Forecast wet hours</div><div class="v" id="t-hours">–</div></div>
+    </div>
+    <div style="margin-top:14px">
+      <div class="k note">How many working hours will be wet?</div>
+      <div class="bands" id="bands"></div>
+      <div class="legend" id="bands-legend"></div>
+    </div>
+    <p class="note" id="model-src"></p>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Recommendation</h2>
+      <div class="crew" id="crew">–</div>
+      <p class="headline" id="headline"></p>
+      <ul class="reasons" id="reasons"></ul>
+      <p class="note" id="season-note"></p>
+    </section>
+    <section class="card">
+      <h2>Expected avoidable cost by crew size</h2>
+      <div class="chart-box"><svg id="curve" width="100%" height="230" role="img"
+        aria-label="Expected avoidable cost for each crew size"></svg><div id="tip"></div></div>
+      <p class="note">Avoidable cost = paid time with no picking + overhead on that time + ripe fruit left another day.</p>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Options</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Option</th><th>Pickers</th><th>Packhouse</th><th>Bins picked</th>
+        <th>Bins left</th><th>Idle pay</th><th>Delay</th><th>Total</th><th>Worker-hours</th></tr></thead>
+      <tbody id="options"></tbody>
+    </table></div>
+  </section>
+
+  <section class="card actual" id="actual-card">
+    <h2>What actually happened (replay only)</h2>
+    <p id="actual"></p>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const pct = v => v == null ? "–" : Math.round(v * 100) + "%";
+const money = v => "$" + Math.round(v).toLocaleString();
+let mode = "replay";
+
+function params() {
+  const q = new URLSearchParams();
+  for (const [id, key] of [["ready","ready_bins"],["pool","crew_pool"],["minpaid","min_paid_hours"],["delay","delay_cost"]]) {
+    const v = $(id).value.trim(); if (v !== "") q.set(key, v);
+  }
+  return q;
+}
+
+async function load() {
+  $("status").textContent = "Loading…"; $("status").className = "note";
+  const q = params();
+  let url = "/api/plan/live?" + q;
+  if (mode === "replay") { q.set("date", $("date").value); url = "/api/plan?" + q; }
+  try {
+    const r = await fetch(url);
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || r.statusText);
+    render(j);
+    $("status").textContent = mode === "live" ? `Live forecast for ${j.date}` : `Replaying the evening before ${j.date}`;
+  } catch (e) { $("status").textContent = e.message; $("status").className = "note err"; }
+}
+
+function render(j) {
+  const k = j.risk;
+  $("t-rain").textContent = pct(k.p_rain);
+  $("t-wash").textContent = pct(k.p_washout);
+  $("t-mm").textContent = k.forecast_mm == null ? "–" : k.forecast_mm + " mm";
+  $("t-hours").textContent = k.forecast_wet_hours == null ? "–" : k.forecast_wet_hours + " h";
+  $("model-src").textContent = "Model: " + k.model;
+  const colors = ["var(--b0)", "var(--b1)", "var(--b2)", "var(--b3)"];
+  const names = { "0": "none", "1-3": "1–3 h", "4-6": "4–6 h", "7+": "7+ h" };
+  const b = j.wet_hour_bands;
+  $("bands").innerHTML = Object.keys(b).map((key, i) =>
+    `<div title="${names[key]}: ${pct(b[key])}" style="flex:${Math.max(b[key], 0.0001)};background:${colors[i]}"></div>`).join("");
+  $("bands-legend").innerHTML = Object.keys(b).map((key, i) =>
+    `<span><i style="background:${colors[i]}"></i>${names[key]} ${pct(b[key])}</span>`).join("");
+
+  $("crew").textContent = `${j.recommended_crew} pickers`;
+  $("headline").textContent = j.headline;
+  $("reasons").innerHTML = j.reasons.map(r => `<li>${r}</li>`).join("");
+  $("season-note").textContent = j.season_note || "";
+  $("options").innerHTML = j.options.map(o => `<tr class="${o.option.startsWith("AI") ? "ai" : ""}">
+    <td>${o.option}</td><td>${o.outdoor_crew}</td><td>${o.packhouse_crew}</td>
+    <td>${o.expected_bins_picked}</td><td>${o.expected_bins_left}</td>
+    <td>${money(o.expected_idle_cost)}</td><td>${money(o.expected_delay_cost)}</td>
+    <td><b>${money(o.expected_total_cost)}</b></td><td>${o.worker_hours_offered}</td></tr>`).join("");
+
+  const a = j.actual;
+  $("actual-card").style.display = a ? "" : "none";
+  if (a) $("actual").textContent = `${a.rain_mm} mm fell in working hours across ${a.wet_hours} wet hour(s): ` +
+    (a.washout ? "a washout day." : a.wet_hours ? "showers, not a washout." : "a dry picking day.");
+  drawCurve(j.cost_curve, j.recommended_crew, j.dry_day_crew);
+}
+
+function drawCurve(c, best, dry) {
+  const svg = $("curve"), W = svg.clientWidth || 480, H = 230, m = { l: 56, r: 12, t: 12, b: 40 };
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const maxY = Math.max(...c) * 1.05 || 1, n = c.length - 1;
+  const x = i => m.l + (i / n) * (W - m.l - m.r), y = v => H - m.b - (v / maxY) * (H - m.t - m.b);
+  let s = "";
+  for (let t = 0; t <= 4; t++) {
+    const v = maxY * t / 4;
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>`;
+    s += `<text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${money(v)}</text>`;
+  }
+  for (let i = 0; i <= n; i += Math.max(1, Math.round(n / 8))) s += `<text x="${x(i)}" y="${H - 24}" text-anchor="middle">${i}</text>`;
+  s += `<text x="${(W + m.l) / 2}" y="${H - 4}" text-anchor="middle">pickers called</text>`;
+  s += `<line x1="${x(dry)}" x2="${x(dry)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--muted)" stroke-dasharray="4 3"/>`;
+  s += `<text x="${x(dry) + 4}" y="${m.t + 10}">dry-day crew</text>`;
+  s += `<path d="${c.map((v, i) => (i ? "L" : "M") + x(i) + " " + y(v)).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+  s += `<circle cx="${x(best)}" cy="${y(c[best])}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`;
+  s += `<line id="xh" y1="${m.t}" y2="${H - m.b}" stroke="var(--text-2)" stroke-width="1" visibility="hidden"/>`;
+  s += `<rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent" id="hit"/>`;
+  svg.innerHTML = s;
+  const tip = $("tip");
+  $("hit").addEventListener("mousemove", e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * (W / r.width);
+    const i = Math.max(0, Math.min(n, Math.round((px - m.l) / (W - m.l - m.r) * n)));
+    const xh = $("xh"); xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.setAttribute("visibility", "visible");
+    tip.style.display = "block";
+    tip.style.left = Math.min(r.width - 150, x(i) * r.width / W + 10) + "px"; tip.style.top = "10px";
+    tip.innerHTML = `<b>${i} pickers</b><br>expected cost ${money(c[i])}${i === best ? "<br>← recommended" : ""}`;
+  });
+  $("hit").addEventListener("mouseleave", () => { tip.style.display = "none"; $("xh").setAttribute("visibility", "hidden"); });
+}
+
+function setMode(m) {
+  mode = m;
+  $("m-replay").setAttribute("aria-pressed", m === "replay");
+  $("m-live").setAttribute("aria-pressed", m === "live");
+  $("date-wrap").style.display = m === "replay" ? "" : "none";
+  load();
+}
+
+async function init() {
+  const r = await fetch("/api/dates");
+  const j = await r.json();
+  $("date").innerHTML = j.dates.map(d => `<option>${d}</option>`).join("");
+  $("date").value = j.dates.includes("2025-04-30") ? "2025-04-30" : j.dates[0];
+  $("m-replay").onclick = () => setMode("replay");
+  $("m-live").onclick = () => setMode("live");
+  for (const id of ["date", "ready", "pool", "minpaid", "delay"]) $(id).addEventListener("change", load);
+  load();
+}
+init();
+</script>
+</body>
+</html>

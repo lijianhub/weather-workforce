@@ -1,0 +1,7 @@
+,saving,ci_low,ci_high
+Full crew (status quo),-187711.0,-248643.0,-132492.0
+Crew sized to ripe fruit (no weather),0.0,0.0,0.0
+Forecast rule of thumb,-44607.0,-65615.0,-24763.0
+AI planner: history-only model,-220.0,-810.0,419.0
+AI planner: MOS model,-406.0,-7050.0,5810.0
+"Perfect forecast, same planner (upper bound)",19613.0,11379.0,28265.0
